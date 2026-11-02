@@ -3,155 +3,191 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ラフィからの手紙</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<meta name="theme-color" content="#273246">
+<title>ラフィからのメッセージ</title>
 <style>
-/* Layout: a single letter sheet on a noren-indigo ground, phone-first; message form follows the letter */
+/* Layout: a group-chat screen; sticky header, Rafi's messages on the left, reply bar sticky at the bottom */
 :root{
-  --ground:#1f2d4a;--sheet:#fbfaf6;--ink:#24262b;--muted:#6a6f7a;--accent:#e2735a;--rule:#e6e3da;--field:#ffffff;
-  --font-letter:"Klee One","Hiragino Mincho ProN","Yu Mincho",serif;
-  --font-ui:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --chat-bg:#8cabd8;--head:#273246;--head-fg:#ffffff;--bubble:#ffffff;--bubble-fg:#111111;
+  --mine:#06c755;--mine-fg:#ffffff;--meta:#3d4f6e;--sys-bg:rgba(0,0,0,.18);--sys-fg:#ffffff;
+  --bar:#ffffff;--field:#f1f2f4;--field-fg:#111111;--hint:#8a8f98;--err:#c62828;
+  --font:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root{
-  --ground:#0f1626;--sheet:#1c2233;--ink:#ece9e1;--muted:#a3a8b4;--accent:#f0907a;--rule:#2e3549;--field:#151a28;color-scheme:dark}}
+  --chat-bg:#1b1d22;--head:#111317;--bubble:#2c2f36;--bubble-fg:#ececec;--meta:#8a909c;--sys-bg:rgba(255,255,255,.1);
+  --bar:#16181c;--field:#26292f;--field-fg:#ececec;--hint:#7d828c;--err:#ff8a80;color-scheme:dark}}
 *{box-sizing:border-box}
-html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-ui);
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 40px}
-.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
-.tag{color:#c9d0e0;font-size:12px;letter-spacing:.2em;text-align:center}
-.sheet{background:var(--sheet);border-radius:6px;padding:32px 24px 28px;box-shadow:0 10px 30px rgba(0,0,0,.25);position:relative}
-.sheet::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;background:var(--accent);border-radius:6px 6px 0 0}
-.tabs{display:flex;gap:6px;justify-content:flex-end;margin-bottom:18px}
-.tabs button{font:500 12px var(--font-ui);padding:5px 12px;border-radius:99px;border:1px solid var(--rule);background:transparent;color:var(--muted);cursor:pointer}
-.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
-button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-h1{font:600 24px/1.5 var(--font-letter);margin:0 0 20px;text-wrap:balance}
-h2{font:600 19px/1.5 var(--font-letter);margin:0 0 6px}
-.letter p{font:400 17px/2.05 var(--font-letter);margin:0 0 1.1em}
-[data-lang-block="en"] p{font-family:var(--font-ui);font-size:16px;line-height:1.8}
-.candy{display:flex;gap:10px;align-items:center;margin:22px 0;padding:12px 14px;border:1px dashed var(--accent);border-radius:6px;font-size:14px;line-height:1.6}
-.candy svg{flex:none}
-.sign{text-align:right;margin-top:26px;font:600 18px var(--font-letter)}
-.sign small{display:block;font:400 12px var(--font-ui);color:var(--muted);margin-bottom:4px;letter-spacing:.05em}
-.lead{font-size:14px;color:var(--muted);line-height:1.7;margin:0 0 18px}
-form{display:flex;flex-direction:column;gap:14px}
-label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500}
-label span.opt{color:var(--muted);font-weight:400}
-input,textarea{font:16px/1.6 var(--font-ui);color:var(--ink);background:var(--field);border:1px solid var(--rule);border-radius:6px;padding:10px 12px;width:100%}
-textarea{min-height:140px;resize:vertical}
-.send{align-self:flex-end;font:700 15px var(--font-ui);background:var(--accent);color:#fff;border:0;border-radius:99px;padding:11px 26px;cursor:pointer}
-.send[disabled]{opacity:.6;cursor:default}
-.status{font-size:14px;line-height:1.6;margin:0}
-.status.ok{color:var(--ink)}
-.status.err{color:var(--accent)}
+html,body{margin:0;background:var(--chat-bg)}
+body{font-family:var(--font);color:var(--bubble-fg);min-height:100vh;display:flex;flex-direction:column}
+.head{position:sticky;top:0;z-index:5;background:var(--head);color:var(--head-fg);
+  padding:calc(env(safe-area-inset-top,0px) + 10px) max(14px,env(safe-area-inset-right,0px)) 10px max(14px,env(safe-area-inset-left,0px));
+  display:flex;align-items:center;gap:10px}
+.head .back{font-size:20px;opacity:.8}
+.head .title{flex:1;min-width:0;font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.head .title small{font-weight:400;opacity:.75;margin-left:4px}
+.lang{font:600 12px var(--font);color:var(--head-fg);background:transparent;border:1px solid rgba(255,255,255,.4);border-radius:99px;padding:4px 10px;cursor:pointer}
+.chat{flex:1;width:100%;max-width:640px;margin:0 auto;padding:14px max(12px,env(safe-area-inset-right,0px)) 18px max(12px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:6px}
+.sys{align-self:center;background:var(--sys-bg);color:var(--sys-fg);font-size:12px;border-radius:99px;padding:3px 12px;margin:6px 0}
+.row{display:flex;gap:8px;align-items:flex-end;animation:pop .35s ease both}
+.row .av{width:38px;height:38px;border-radius:50%;flex:none;align-self:flex-start;background:#e2735a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+.row .av img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+.row .av.ghost{visibility:hidden;height:0}
+.col{display:flex;flex-direction:column;gap:3px;min-width:0;max-width:78%}
+.name{font-size:12px;color:var(--meta)}
+.line{display:flex;align-items:flex-end;gap:5px}
+.b{background:var(--bubble);color:var(--bubble-fg);border-radius:18px;padding:9px 13px;font-size:15px;line-height:1.55;word-break:break-word;overflow-wrap:anywhere;min-width:0}
+.t{font-size:10px;color:var(--meta);white-space:nowrap;flex:none}
+.mine{justify-content:flex-end}
+.mine .line{flex-direction:row-reverse}
+.mine .b{background:var(--mine);color:var(--mine-fg)}
+.mine .read{font-size:10px;color:var(--meta);display:flex;flex-direction:column;align-items:flex-end}
+.sticker{width:120px;height:auto;display:block}
+.bar{position:sticky;bottom:0;background:var(--bar);border-top:1px solid rgba(0,0,0,.08);
+  padding:8px max(10px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
+.bar form{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:6px}
+.bar .r{display:flex;gap:8px;align-items:flex-end}
+.bar input,.bar textarea{font:16px/1.4 var(--font);color:var(--field-fg);background:var(--field);border:0;border-radius:18px;padding:8px 14px;width:100%}
+.bar textarea{resize:none;height:40px;max-height:120px}
+.send{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--mine);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.send[disabled]{opacity:.5}
+.status{font-size:12px;color:var(--hint);margin:0;min-height:1em}
+.status.err{color:var(--err)}
 .hp{position:absolute;left:-9999px}
-.foot{color:#9aa4bb;font-size:12px;text-align:center}
-@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+:focus-visible{outline:2px solid var(--mine);outline-offset:2px}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.row{animation:none}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="tag">はま寿司 大阪 · 2025.4 — 2026.11</div>
 
-  <article class="sheet">
-    <div class="tabs" role="group" aria-label="Language">
-      <button id="btn-ja" type="button" aria-pressed="true" data-lang="ja">日本語</button>
-      <button id="btn-en" type="button" aria-pressed="false" data-lang="en">English</button>
+<header class="head">
+  <span class="back" aria-hidden="true">‹</span>
+  <div class="title" data-ja="はま寿司 松原南新町店" data-en="Hama Sushi Matsubara Minami-Shinmachi">はま寿司 松原南新町店</div>
+  <button class="lang" id="lang-btn" type="button" aria-label="Switch language">EN</button>
+</header>
+
+<main class="chat" id="chat">
+  <div class="sys" data-ja="11月3日(火)" data-en="Tue, Nov 3">11月3日(火)</div>
+
+  <div class="row" style="animation-delay:0.10s">
+    <div class="av" aria-hidden="true"><img src="data:image/jpeg;base64,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" alt=""></div>
+    <div class="col">
+      <span class="name" data-ja="ラフィ" data-en="Rafi">ラフィ</span>
+      <div class="line"><div class="b" data-ja="松原のみなさん、いつも本当にありがとうございました。<br>11月から、広島のお店に異動することになりました。" data-en="Everyone at Matsubara, thank you so much for everything.<br>From November, I'm transferring to a store in Hiroshima.">松原のみなさん、いつも本当にありがとうございました。<br>11月から、広島のお店に異動することになりました。</div></div>
     </div>
+  </div>
 
-    <div class="letter" data-lang-block="ja">
-      <h1>大阪のみなさんへ</h1>
-      <p>いつも本当にありがとうございました。<br>11月から、広島のお店に異動することになりました。</p>
-      <p>2025年4月からこのお店で働かせていただき、たくさんのことを学びました。忙しいピークの時間も、深夜のシフトも、オープン前の準備も、みなさんと一緒だったから毎日がんばれました。</p>
-      <p>新しく入ったクルーのみなさんに仕事を教える機会もたくさんいただき、とても良い経験になりました。</p>
-      <p>広島に行っても、ここで学んだことを大切にしてがんばります。広島に来ることがあれば、ぜひ声をかけてください。</p>
-      <p>体に気をつけて、これからもお元気で。<br>本当にありがとうございました。</p>
-      <div class="candy">
-        <svg width="28" height="20" viewBox="0 0 28 20" aria-hidden="true"><path d="M2 4l5 6-5 6z M26 4l-5 6 5 6z" fill="var(--accent)"/><ellipse cx="14" cy="10" rx="8" ry="7" fill="var(--accent)"/></svg>
-        <span>休憩室にお菓子を置いています。よかったら食べてください。</span>
-      </div>
-      <div class="sign"><small>1st Assistant Manager</small>ラフィ</div>
+  <div class="row" style="animation-delay:0.55s">
+    <div class="av ghost" aria-hidden="true"></div>
+    <div class="col"><div class="line"><div class="b" data-ja="2025年10月29日に松原に来てから、もうすぐ1年になります。そのうち半分近くは深夜の勤務でしたが、みなさんと一緒に働く中で、たくさんの良い思い出ができました。" data-en="I came to Matsubara on 29 October 2025, so it's been almost a year. Even though I worked midnight shifts for almost half of that time, I made a lot of good memories working with all of you.">2025年10月29日に松原に来てから、もうすぐ1年になります。そのうち半分近くは深夜の勤務でしたが、みなさんと一緒に働く中で、たくさんの良い思い出ができました。</div></div></div>
+  </div>
+
+  <div class="row" style="animation-delay:1.00s">
+    <div class="av ghost" aria-hidden="true"></div>
+    <div class="col"><div class="line"><div class="b" data-ja="握りを楽しめるお店は、もしかしたら松原だけかもしれません。みなさんが速く、効率よく握ることにこだわっているからです。誰が一番早くきれいな商品を作れるか、みんなで競い合った時間は、この仕事を続けていく中でずっと大切にしたい思い出です。これからもそのことを忘れずに、さらに上を目指してがんばってください。" data-en="Matsubara might be the only place where I can have fun doing nigiri, because everyone here loves to be fast and efficient at it. Competing with each other to see who could make clean products the fastest is something I will always hold dear in this job. I hope you'll all remember it and keep trying your best to improve.">握りを楽しめるお店は、もしかしたら松原だけかもしれません。みなさんが速く、効率よく握ることにこだわっているからです。誰が一番早くきれいな商品を作れるか、みんなで競い合った時間は、この仕事を続けていく中でずっと大切にしたい思い出です。これからもそのことを忘れずに、さらに上を目指してがんばってください。</div></div></div>
+  </div>
+
+  <div class="row" style="animation-delay:1.45s">
+    <div class="av ghost" aria-hidden="true"></div>
+    <div class="col"><div class="line"><div class="b" data-ja="長い1年間、本当にありがとうございました。<br>またここで働けるタイミングが来たら、そのときは必ず戻ってきます。" data-en="Thank you for this long year.<br>If a future comes where I can work here again, I will gladly take it.">長い1年間、本当にありがとうございました。<br>またここで働けるタイミングが来たら、そのときは必ず戻ってきます。</div></div></div>
+  </div>
+
+  <div class="row" style="animation-delay:1.9s">
+    <div class="av ghost" aria-hidden="true"></div>
+    <div class="col"><div class="line">
+      <svg class="sticker" viewBox="0 0 120 100" role="img" aria-label="Salmon nigiri sticker">
+        <ellipse cx="60" cy="72" rx="46" ry="18" fill="#f7f4ec" stroke="#d9d3c4" stroke-width="2"/>
+        <path d="M14 58 C24 30 96 30 106 58 C96 70 24 70 14 58Z" fill="#f08a5d" stroke="#d96a3e" stroke-width="2"/>
+        <path d="M34 44 L44 62 M52 40 L60 63 M70 40 L76 62 M86 45 L92 60" stroke="#fbd0b8" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="48" cy="54" r="3" fill="#3b2a24"/><circle cx="72" cy="54" r="3" fill="#3b2a24"/>
+        <path d="M55 60 Q60 65 65 60" stroke="#3b2a24" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <text x="60" y="20" text-anchor="middle" font-size="14" font-weight="700" fill="#e2735a" font-family="sans-serif">ありがとう!</text>
+      </svg>
+    </div></div>
+  </div>
+
+  <div class="row" style="animation-delay:2.2s">
+    <div class="av ghost" aria-hidden="true"></div>
+    <div class="col"><div class="line"><div class="b" data-ja="休憩室にお菓子を置いています。よかったら食べてください。" data-en="I left some sweets in the break room. Please help yourselves.">休憩室にお菓子を置いています。よかったら食べてください。</div></div></div>
+  </div>
+
+  <div class="sys" data-ja="下の入力欄からラフィに返信できます" data-en="You can reply to Rafi below">下の入力欄からラフィに返信できます</div>
+</main>
+
+<div class="bar">
+  <form id="msg-form" novalidate>
+    <input type="hidden" name="access_key" value="5ceaecd6-3f97-4026-940f-b650dcb15113">
+    <input type="hidden" name="subject" value="松原のみんなからのメッセージ">
+    <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <input id="msg-name" name="name" type="text" maxlength="60" autocomplete="name" placeholder="お名前（任意）" aria-label="Name (optional)">
+    <div class="r">
+      <textarea id="msg-body" name="message" maxlength="2000" placeholder="メッセージを入力" aria-label="Message"></textarea>
+      <button class="send" id="msg-send" type="submit" aria-label="Send">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 21 3l-8.5 18-2.2-7.3L3 11.5Z" fill="currentColor"/></svg>
+      </button>
     </div>
-
-    <div class="letter" data-lang-block="en" hidden>
-      <h1>To everyone in Osaka</h1>
-      <p>Thank you so much for everything. From November, I'm transferring to a store in Hiroshima.</p>
-      <p>I've worked at this store since April 2025 and learned a lot here. Busy peak hours, midnight shifts, pre-opening prep: I could keep going every day because I was doing it with all of you.</p>
-      <p>I also had many chances to train our new crew members, and it was a really valuable experience.</p>
-      <p>I'll keep what I learned here with me in Hiroshima. If you ever visit, please come and say hi.</p>
-      <p>Take care of yourselves. Thank you, truly.</p>
-      <div class="candy">
-        <svg width="28" height="20" viewBox="0 0 28 20" aria-hidden="true"><path d="M2 4l5 6-5 6z M26 4l-5 6 5 6z" fill="var(--accent)"/><ellipse cx="14" cy="10" rx="8" ry="7" fill="var(--accent)"/></svg>
-        <span>I left some sweets in the break room. Please help yourselves.</span>
-      </div>
-      <div class="sign"><small>1st Assistant Manager</small>Rafi</div>
-    </div>
-  </article>
-
-  <section class="sheet" aria-labelledby="msg-title">
-    <h2 id="msg-title" data-ja="ラフィにメッセージを送る" data-en="Send Rafi a message">ラフィにメッセージを送る</h2>
-    <p class="lead" data-ja="ひとことでも大歓迎です。ラフィだけが読みます。" data-en="Even one line is welcome. Only Rafi will read it.">ひとことでも大歓迎です。ラフィだけが読みます。</p>
-
-    <form id="msg-form" novalidate>
-      <input type="hidden" name="access_key" value="5ceaecd6-3f97-4026-940f-b650dcb15113">
-      <input type="hidden" name="subject" value="大阪のみんなからのメッセージ">
-      <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-
-      <label for="msg-name"><span><span data-ja="お名前" data-en="Your name">お名前</span> <span class="opt" data-ja="（任意）" data-en="(optional)">（任意）</span></span>
-        <input id="msg-name" name="name" type="text" maxlength="60" autocomplete="name">
-      </label>
-
-      <label for="msg-body"><span data-ja="メッセージ" data-en="Message">メッセージ</span>
-        <textarea id="msg-body" name="message" maxlength="2000" required></textarea>
-      </label>
-
-      <button class="send" id="msg-send" type="submit" data-ja="送信" data-en="Send">送信</button>
-      <p class="status" id="msg-status" role="status" aria-live="polite"></p>
-    </form>
-  </section>
-
-  <div class="foot">ありがとうございました</div>
+    <p class="status" id="msg-status" role="status" aria-live="polite"></p>
+  </form>
 </div>
 
 <script>
 let lang = 'ja';
 const T = {
-  empty: {ja:'メッセージを入力してください。', en:'Please write a message first.'},
-  sending: {ja:'送信中…', en:'Sending…'},
-  ok: {ja:'送信しました。ありがとうございます！', en:'Sent. Thank you!'},
-  err: {ja:'送信できませんでした。電波を確認して、もう一度お試しください。', en:"Couldn't send. Check your connection and try again."}
+  empty:{ja:'メッセージを入力してください。',en:'Write a message first.'},
+  sending:{ja:'送信中…',en:'Sending…'},
+  ok:{ja:'ラフィに届きました。ありがとう！',en:'Delivered to Rafi. Thank you!'},
+  err:{ja:'送信できませんでした。電波を確認して、もう一度お試しください。',en:"Couldn't send. Check your connection and try again."},
+  name:{ja:'お名前（任意）',en:'Your name (optional)'},
+  msg:{ja:'メッセージを入力',en:'Type a message'},
+  read:{ja:'既読',en:'Read'}
 };
-function setLang(l){
-  lang = l;
-  document.documentElement.lang = l;
-  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.lang===l)));
-  document.querySelectorAll('[data-lang-block]').forEach(el=>el.hidden = el.dataset.langBlock!==l);
-  document.querySelectorAll('[data-ja]').forEach(el=>el.textContent = el.dataset[l]);
-}
-document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>setLang(b.dataset.lang)));
+const chat = document.getElementById('chat');
+const btn = document.getElementById('lang-btn');
+btn.addEventListener('click',()=>{
+  lang = lang==='ja'?'en':'ja';
+  document.documentElement.lang = lang;
+  btn.textContent = lang==='ja'?'EN':'日本語';
+  document.querySelectorAll('[data-ja]').forEach(el=>{ el.innerHTML = el.dataset[lang]; });
+  document.getElementById('msg-name').placeholder = T.name[lang];
+  document.getElementById('msg-body').placeholder = T.msg[lang];
+  document.querySelectorAll('.read-label').forEach(el=>el.textContent=T.read[lang]);
+});
 
-const form = document.getElementById('msg-form');
-const status = document.getElementById('msg-status');
-const sendBtn = document.getElementById('msg-send');
-form.addEventListener('submit', async e=>{
+const ta = document.getElementById('msg-body');
+ta.addEventListener('input',()=>{ ta.style.height='40px'; ta.style.height=Math.min(ta.scrollHeight,120)+'px'; status.textContent=''; status.className='status'; });
+
+function now(){ const d=new Date(); return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+function addMine(text){
+  const row=document.createElement('div'); row.className='row mine';
+  const col=document.createElement('div'); col.className='col';
+  const line=document.createElement('div'); line.className='line';
+  const b=document.createElement('div'); b.className='b'; b.textContent=text;
+  const meta=document.createElement('div'); meta.className='read';
+  meta.innerHTML='<span class="read-label">'+T.read[lang]+'</span><span>'+now()+'</span>';
+  line.append(b,meta); col.append(line); row.append(col); chat.append(row);
+  row.scrollIntoView({behavior:'smooth',block:'end'});
+}
+
+const form=document.getElementById('msg-form');
+const status=document.getElementById('msg-status');
+const send=document.getElementById('msg-send');
+form.addEventListener('submit',async e=>{
   e.preventDefault();
-  const body = document.getElementById('msg-body');
-  if(!body.value.trim()){ status.className='status err'; status.textContent=T.empty[lang]; body.focus(); return; }
-  sendBtn.disabled = true; status.className='status'; status.textContent = T.sending[lang];
+  const text=ta.value.trim();
+  if(!text){ status.className='status err'; status.textContent=T.empty[lang]; ta.focus(); return; }
+  send.disabled=true; status.className='status'; status.textContent=T.sending[lang];
   try{
-    const data = Object.fromEntries(new FormData(form));
-    data.botcheck = form.botcheck.checked;
-    const res = await fetch('https://api.web3forms.com/submit',{
-      method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(data)
-    });
-    const json = await res.json();
+    const data=Object.fromEntries(new FormData(form));
+    data.botcheck=form.botcheck.checked;
+    const res=await fetch('https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(data)});
+    const json=await res.json();
     if(!json.success) throw new Error(json.message||'failed');
-    form.reset(); status.className='status ok'; status.textContent = T.ok[lang];
+    addMine(text);
+    ta.value=''; ta.style.height='40px';
+    status.className='status'; status.textContent=T.ok[lang];
   }catch(err){
-    status.className='status err'; status.textContent = T.err[lang];
-  }finally{ sendBtn.disabled = false; }
+    status.className='status err'; status.textContent=T.err[lang];
+  }finally{ send.disabled=false; }
 });
 </script>
 </body>
